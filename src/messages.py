@@ -1,70 +1,75 @@
+"""Exchange message protocol definitions.
+
+Defines the FIX-style message types exchanged between a trading
+participant and the exchange: order entry, modification, cancellation,
+confirmations, crossed-order notifications, and market data snapshots.
+"""
+
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
-
-## NOTE TO SELF: default_factory = new list for each class (ie each order)
 
 @dataclass
 class Message:
     message_type: str
     timestamp: datetime = field(default_factory=datetime.now)
-    message_id: str = field(default_factory=str)
+    message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
-# Order Entry
+
 @dataclass
 class OrderEntryRequest(Message):
-    message_type: str = "OrderEntryRequest"
+    message_type: str = "ORDER_ENTRY"
     participant_id: str = ""
-    order_id: str = "" #
+    order_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     security_id: str = ""
-    side: str = "" # BID / ASK
+    side: str = ""  # "BID" or "ASK"
     quantity: int = 0
-    price: float= 0.0
+    price: float = 0.0
 
-# Order Modification
+
 @dataclass
 class OrderModificationRequest(Message):
-    message_type: str = "OrderModificationRequest"
+    message_type: str = "ORDER_MODIFY"
     participant_id: str = ""
-    order_id: str = "" # needs to be an existing order ID
+    order_id: str = ""
     new_quantity: int = 0
-    new_price: float= 0.0
+    new_price: float = 0.0
 
-# Order Cancellation
+
 @dataclass
 class OrderCancellationRequest(Message):
-    message_type: str = "OrderCancellationRequest"
+    message_type: str = "ORDER_CANCEL"
     participant_id: str = ""
     order_id: str = ""
 
-# Order Confirmation
-class OrderConfirmationRequest(Message):
-    message_type: str = "OrderConfirmationRequest"
+
+@dataclass
+class OrderConfirmation(Message):
+    message_type: str = "ORDER_CONFIRM"
     order_id: str = ""
-    status: str = ""  # "ACKNOWLEDGED", "FILLED", "PARTIALLY_FILLED", "CANCELLED", "REJECTED"
+    status: str = ""  # ACKNOWLEDGED, FILLED, PARTIALLY_FILLED, CANCELLED, REJECTED
     executed_quantity: int = 0
     remaining_quantity: int = 0
-    execution_price: float= 0.0
+    execution_price: Optional[float] = None
 
-# Crossed Order Notification
-# when the highest price a buyer is willing to pay > lowest price a seller is willing to accept
-# bid > ask
-# arbitrage! can buy at lower price & sell for higher
+
 @dataclass
-class CrossedOrderNotification(Message):
-    message_type: str = "CrossedOrderNotification"
+class CrossedOrdersNotification(Message):
+    message_type: str = "CROSSED_ORDERS"
     crossed_order_ids: list = field(default_factory=list)
     participant_ids: list = field(default_factory=list)
     trade_prices: list = field(default_factory=list)
 
-# Market Data Snapshot
+
 @dataclass
-class MarketData(Message):
-    message_type: str = "MarketData"
+class MarketDataSnapshot(Message):
+    message_type: str = "MARKET_DATA"
     security_id: str = ""
-    best_bid_price: float= 0.0
-    best_bid_quantity: int= 0
-    best_ask_price: float= 0.0
-    best_ask_quantity: int= 0
-    last_trade_price: float= 0.0
-    last_trade_quantity: int= 0
+    best_bid_price: float = 0.0
+    best_bid_quantity: int = 0
+    best_ask_price: float = 0.0
+    best_ask_quantity: int = 0
+    last_traded_price: float = 0.0
+    last_traded_volume: int = 0
